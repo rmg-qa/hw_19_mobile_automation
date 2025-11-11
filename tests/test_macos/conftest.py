@@ -1,4 +1,3 @@
-import time
 from appium import webdriver
 import pytest
 from appium.options.ios import XCUITestOptions
