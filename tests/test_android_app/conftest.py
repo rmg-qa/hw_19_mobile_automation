@@ -1,10 +1,14 @@
+import allure
 import pytest
+import allure_commons
 from appium.options.android import UiAutomator2Options
-from appium import webdriver
 from selene import browser
 import os
+
+import config
+from selene_in_action.utils import allure as utils_allure
 import dotenv
-import project
+from appium import webdriver
 
 dotenv.load_dotenv()
 user_name = os.getenv('BROWSERSTACK_USERNAME')
@@ -24,9 +28,9 @@ def mobile_management_android():
 
         # Set other BrowserStack capabilities
         'bstack:options': {
-            "projectName": project.config.BROWSERSTACK_PROJECT_NAME,
-            "buildName": project.config.BROWSERSTACK_BUILD_NAME,
-            "sessionName": project.config.BROWSERSTACK_SESSION_NAME,
+            "projectName": config.config.BROWSERSTACK_PROJECT_NAME,
+            "buildName": config.config.BROWSERSTACK_BUILD_NAME,
+            "sessionName": config.config.BROWSERSTACK_SESSION_NAME,
 
             # Set your access credentials
             "userName": user_name,
@@ -34,12 +38,35 @@ def mobile_management_android():
         }
     })
 
-    browser.config.driver = webdriver.Remote("http://hub.browserstack.com/wd/hub",
-                                             options=options)  # Адрес для подключения к Browserstack
-    browser.config.driver_remote_url = 'http://hub.browserstack.com/wd/hub'
-    browser.config.driver_options = options
-    browser.config.timeout = project.config.timeout
+    browser.config.timeout = config.config.timeout
+    with allure.step('init app session'):
+        browser.config.driver = webdriver.Remote(
+            'http://hub.browserstack.com/wd/hub',
+            options=options
+        )
 
+    browser.config.timeout = float(os.getenv('timeout', '10.0'))
+
+    browser.config.wait_decorator = allure_commons._allure.step
     yield
+
+    allure.attach(
+        browser.driver.get_screenshot_as_png(),
+        name='screenshot',
+        attachment_type=allure.attachment_type.PNG,
+    )
+
+    allure.attach(
+        browser.driver.page_source,
+        name='screen xml dump',
+        attachment_type=allure.attachment_type.XML,
+    )
+
+    session_id = browser.driver.session_id
+
+    with allure.step('tear down app session'):
+        browser.quit()
+
+    utils_allure.attach_bstack_video(session_id, version_driver="app-")
 
     browser.quit()
