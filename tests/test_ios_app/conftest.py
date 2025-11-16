@@ -1,13 +1,13 @@
 from appium import webdriver
 import pytest
 from appium.options.ios import XCUITestOptions
-from selene import browser
 import os
 import dotenv
 import allure
 import config
 import allure_commons
 from selene_in_action.utils import allure as utils_allure
+from selene import browser
 
 dotenv.load_dotenv()
 user_name = os.getenv('BROWSERSTACK_USERNAME')
@@ -16,27 +16,26 @@ accesskey = os.getenv('BROWSERSTACK_ACCESS_KEY')
 
 @pytest.fixture(scope='function')
 def macos_management():
-    options = XCUITestOptions()
+    options = XCUITestOptions().load_capabilities({
+        # Specify device and os_version for testing
+        "platformName": "ios",
+        "platformVersion": "17",
+        "deviceName": "iPhone 15 Pro Max",
 
-    # Основные capabilities для Safari на маке
-    options.platform_name = 'ANY'
-    options.browser_name = 'Safari'
-    options.device_name = 'iPhone 14 Pro Max'
-    options.platform_version = '16'
-    options.automation_name = 'XCUITest'  #
+        # Set URL of the application under test
+        "app": "bs://sample.app",
 
-    # BrowserStack специфичные capabilities
-    options.set_capability('bstack:options', {
-        'userName': user_name,
-        'accessKey': accesskey,
-        'projectName': config.config.BROWSERSTACK_PROJECT_NAME,
-        'buildName': config.config.BROWSERSTACK_BUILD_NAME,
-        'sessionName': config.config.BROWSERSTACK_SESSION_NAME,
-        'deviceOrientation': 'portrait',
-        'local': 'false',
-        'debug': 'true',
-        'networkLogs': 'true'  # Для отладки сетевых проблем
-    })
+        # Set other BrowserStack capabilities
+        'bstack:options': {
+            "projectName": "IOS tests",
+            "buildName": "browserstack-build-ios",
+
+            # Set your access credentials
+            "userName": user_name,
+            "accessKey": accesskey
+        }
+    }
+    )
 
     # Конфигурация Selene
     browser.config.timeout = config.config.timeout
@@ -69,6 +68,6 @@ def macos_management():
     with allure.step('tear down app session'):
         browser.quit()
 
-    utils_allure.attach_bstack_video(session_id, version_driver='')
+    utils_allure.attach_bstack_video(session_id, version_driver='app-')
 
     browser.quit()
